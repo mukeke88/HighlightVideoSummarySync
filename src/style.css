@@ -31,7 +31,7 @@ body {
   margin: 0 auto;
   display: grid;
   gap: 20px;
-  padding-bottom: 210px;
+  padding-bottom: 92px;
 }
 
 .hero {
@@ -99,72 +99,71 @@ body {
   right: 16px;
   bottom: 16px;
   z-index: 40;
-  width: min(520px, calc(100vw - 24px));
+  width: min(320px, calc(100vw - 20px));
   border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(8px);
-  border-radius: 14px;
-  box-shadow: var(--shadow);
-  padding: 10px;
-  display: grid;
-  gap: 8px;
-}
-
-.dock-meta {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.dock-meta div,
-.dock-section {
-  border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 7px 9px;
-  background: #fffaf2;
-  min-width: 0;
+  box-shadow: var(--shadow);
+  padding: 6px;
+  display: grid;
+  gap: 5px;
+  font-size: 11px;
 }
 
-.dock-meta span,
-.dock-section span {
-  display: block;
+.dock-meta-inline {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
   color: var(--muted);
-  font-size: 12px;
+  line-height: 1.2;
 }
 
-.dock-meta strong,
-.dock-section strong {
-  display: block;
-  font-size: 12px;
+.dock-meta-inline b {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.dock-section-inline {
+  color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.2;
 }
 
 .dock-row {
   display: grid;
-  grid-template-columns: auto minmax(60px, 1fr) auto minmax(60px, 1fr) auto;
+  grid-template-columns: auto minmax(42px, 1fr) auto minmax(42px, 1fr) auto;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .dock-row label {
-  font-size: 12px;
+  font-size: 10px;
   color: var(--muted);
 }
 
 .dock-row input {
   width: 100%;
   min-width: 0;
-  padding: 6px 8px;
-  border-radius: 8px;
+  padding: 3px 6px;
+  border-radius: 6px;
   border: 1px solid var(--border);
-  font-size: 13px;
+  font-size: 11px;
 }
 
 .dock-buttons {
   display: flex;
-  gap: 8px;
+  gap: 4px;
+}
+
+.dock-buttons button,
+.dock-row button {
+  font-size: 11px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  line-height: 1;
 }
 
 .buttons {
@@ -253,7 +252,7 @@ button:hover:not(:disabled) {
   }
 
   .app {
-    padding-bottom: 240px;
+    padding-bottom: 116px;
   }
 
   .control-dock {
@@ -261,16 +260,11 @@ button:hover:not(:disabled) {
     right: 8px;
     bottom: 8px;
     width: auto;
-    border-radius: 12px;
-    padding: 8px;
-  }
-
-  .dock-meta {
-    grid-template-columns: 1fr;
+    border-radius: 10px;
+    padding: 6px;
   }
 
   .dock-buttons {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    justify-content: flex-start;
   }
 }
