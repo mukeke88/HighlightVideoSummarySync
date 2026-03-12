@@ -91,9 +91,18 @@ const cleanTitle = (text) => {
     .trim();
 };
 
-const isHeading = (line) => /^#{1,6}\s+/.test(line) || /^\d+[.)、]\s+/.test(line);
+const isHeading = (line) =>
+  /^#{1,6}\s+/.test(line) || /^\d+[.)、]\s+/.test(line) || /^\d+(?:\.\d+)+\s+/.test(line);
 
 const isBullet = (line) => /^\s*(?:[-*+]\s+|\d+[.)]\s+)/.test(line);
+
+const looksLikeSectionTitle = (line) => {
+  if (!line) return false;
+  if (isBullet(line)) return false;
+  const text = cleanTitle(line);
+  if (!text) return false;
+  return text.length <= 120;
+};
 
 const finalizeSections = (rawSections) => {
   if (!rawSections.length) return [];
@@ -165,11 +174,11 @@ const parseMarkdownSummary = (markdown) => {
     }
 
     const lineRange = parseTimeRange(line);
-    if (lineRange && (!current || (current.start == null && current.items.length === 0))) {
-      if (!current) openSection(line);
+    if (lineRange && looksLikeSectionTitle(line)) {
+      openSection(line);
       current.start = lineRange.start;
       current.end = lineRange.end;
-      if (!current.title) current.title = cleanTitle(line) || `Section ${rawSections.length + 1}`;
+      if (!current.title) current.title = `Section ${rawSections.length + 1}`;
       continue;
     }
 
