@@ -379,7 +379,7 @@ onBeforeUnmount(() => {
 
     <aside class="control-dock">
       <div class="dock-meta-inline">
-        <span><b>T</b> {{ formatClock(state.elapsed) }} / {{ state.elapsed.toFixed(1) }}s</span>
+        <span><b>T</b> {{ formatClock(state.elapsed) }}</span>
         <span><b>S</b> {{ statusLabel }}</span>
         <span v-if="state.status === 'countdown'"><b>CD</b> {{ state.countdown.toFixed(1) }}s</span>
       </div>
