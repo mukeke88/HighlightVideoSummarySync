@@ -1,106 +1,30 @@
-﻿<script setup>
+<script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 
-const sections = [
+const SAMPLE_MARKDOWN = `# 背景与核心概念（00:00 - 00:31）
+- Open Cloud 的定位与市场热度：个人级超级 AI 助手
+- 核心能力：自主执行、跨平台交互、深度集成本地与网络能力
+
+## 安装前准备与环境配置 00:31-01:04
+- 推荐 Windows 11
+- 具完全文件系统权限，需谨慎
+
+## 网络环境准备 [02:08 - 02:52]
+- 需要稳定访问境外服务
+- 虚拟机内配置系统代理
+
+## 部署流程详解（02:55 - 09:47）
+- 安装 WSL 并配置 Ubuntu
+- 一键安装并完成初始设置`;
+
+const initialSections = [
   {
     id: "sec-1",
     title: "背景与核心概念",
     time: "00:00 - 00:31",
     start: 0,
     end: 31,
-    items: [
-      "Open Cloud 的定位与市场热度：个人级超级 AI 助手，苹果设备部署引发抢购。",
-      "核心能力：自主执行、跨平台交互、深度集成本地与网络能力。",
-      "技术本质：组件基于 Linux；Windows 原生兼容性差。",
-      "关键结论：官方推荐且更稳定的部署方式是 WSL。",
-    ],
-  },
-  {
-    id: "sec-2",
-    title: "安装前准备与环境配置",
-    time: "00:31 - 01:04",
-    start: 31,
-    end: 64,
-    items: [
-      "硬件与系统要求：推荐 Windows 11；Win10 需 ≥ 2004；普通办公机即可。",
-      "风险提示：工具具完全文件系统权限，误操作可能导致数据损失。",
-      "安装方式对比：原生安装受限制且痛苦；WSL 安装生态完整、维护方便。",
-      "最终建议：优先采用 WSL，规避原生安装坑点。",
-    ],
-  },
-  {
-    id: "sec-3",
-    title: "网络环境准备",
-    time: "02:08 - 02:52",
-    start: 128,
-    end: 172,
-    items: [
-      "需要稳定访问境外服务（Google API、OpenAI 等）。",
-      "虚拟机部署建议使用主机代理的局域网共享。",
-      "在虚拟机内配置系统级代理（http_proxy / https_proxy）。",
-    ],
-  },
-  {
-    id: "sec-4",
-    title: "部署流程详解",
-    time: "02:55 - 09:47",
-    start: 175,
-    end: 587,
-    items: [
-      "安装 WSL 并配置 Ubuntu：wsl --install，重启后安装发行版。",
-      "一键安装 Open Cloud：curl 脚本自动装依赖与主程序。",
-      "初始设置：最小化配置，先跑通流程再完善。",
-      "启动可视化控制台：优先选择网页界面，确认绿色运行状态。",
-    ],
-  },
-  {
-    id: "sec-5",
-    title: "核心配置：接入大模型",
-    time: "07:04 - 09:45",
-    start: 424,
-    end: 585,
-    items: [
-      "推荐 Google Antigravity 授权：免费、模型丰富、额度充足。",
-      "授权流程：生成链接 → 浏览器登录 → 回填回调链接。",
-      "设置默认模型并验证配置：opencloud config models。",
-    ],
-  },
-  {
-    id: "sec-6",
-    title: "连接外部通信渠道",
-    time: "09:49 - 11:04",
-    start: 589,
-    end: 664,
-    items: [
-      "创建 Telegram 机器人并获取 Token。",
-      "opencloud config channels 绑定并完成配对。",
-      "效果：手机可远程操控 AI。",
-    ],
-  },
-  {
-    id: "sec-7",
-    title: "功能测试与能力验证",
-    time: "11:08 - 12:27",
-    start: 668,
-    end: 747,
-    items: [
-      "测试联网能力与网页读取能力。",
-      "推特内容访问失败：需要登录或 Cookie。",
-      "YouTube 提取：自动装插件、绕过检测，最终成功。",
-      "观察结论：具备自主思考、问题拆解与替代路径能力。",
-    ],
-  },
-  {
-    id: "sec-8",
-    title: "总结与展望",
-    time: "12:30 - 12:48",
-    start: 750,
-    end: 768,
-    items: [
-      "总结：WSL 部署成功率高、核心优势明显、风险可控。",
-      "后续建议：多账号轮换、自定义技能、接入第三方 API。",
-      "最终评价：Windows 上也能获得媲美 macOS 的 AI 助手体验。",
-    ],
+    items: ["请在上方输入框粘贴你的视频总结 Markdown。"],
   },
 ];
 
@@ -110,7 +34,12 @@ const state = reactive({
   countdown: 0,
   delaySeconds: 2,
   jumpTo: "",
+  parseMessage: "",
+  parseError: "",
 });
+
+const markdownInput = ref(SAMPLE_MARKDOWN);
+const sections = ref(initialSections);
 
 let timerId = null;
 let startEpoch = 0;
@@ -122,8 +51,161 @@ const formatClock = (seconds) => {
   return `${m}:${s}`;
 };
 
+const toSeconds = (raw) => {
+  if (!raw) return null;
+  const parts = String(raw).trim().split(":").map(Number);
+  if (parts.some((x) => Number.isNaN(x))) return null;
+  if (parts.length === 2) {
+    const [m, s] = parts;
+    return m * 60 + s;
+  }
+  if (parts.length === 3) {
+    const [h, m, s] = parts;
+    return h * 3600 + m * 60 + s;
+  }
+  return null;
+};
+
+const formatRange = (start, end) => `${formatClock(start)} - ${formatClock(end)}`;
+
+const parseTimeRange = (line) => {
+  if (!line) return null;
+  const compactLine = line.replace(/\s+/g, " ");
+  const timeToken = "(\\d{1,2}:\\d{2}(?::\\d{2})?)";
+  const rangeRegex = new RegExp(`${timeToken}\\s*(?:~|\\-|–|—|至|to)\\s*${timeToken}`, "i");
+  const match = compactLine.match(rangeRegex);
+  if (!match) return null;
+  const start = toSeconds(match[1]);
+  const end = toSeconds(match[2]);
+  if (start == null || end == null) return null;
+  if (end <= start) return null;
+  return { start, end, raw: `${match[1]} - ${match[2]}` };
+};
+
+const cleanTitle = (text) => {
+  return text
+    .replace(/^#+\s*/, "")
+    .replace(/^\d+[.)、]\s*/, "")
+    .replace(/[（(\[]?\s*\d{1,2}:\d{2}(?::\d{2})?\s*(?:~|\-|–|—|至|to)\s*\d{1,2}:\d{2}(?::\d{2})?\s*[)）\]]?/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const isHeading = (line) => /^#{1,6}\s+/.test(line) || /^\d+[.)、]\s+/.test(line);
+
+const isBullet = (line) => /^\s*(?:[-*+]\s+|\d+[.)]\s+)/.test(line);
+
+const finalizeSections = (rawSections) => {
+  if (!rawSections.length) return [];
+
+  const sorted = rawSections
+    .filter((x) => typeof x.start === "number")
+    .sort((a, b) => a.start - b.start)
+    .map((section, idx, arr) => {
+      let end = section.end;
+      if (typeof end !== "number") {
+        const next = arr[idx + 1];
+        end = next ? Math.max(section.start + 1, next.start) : section.start + 60;
+      }
+      if (end <= section.start) {
+        end = section.start + 1;
+      }
+      return {
+        id: `sec-${idx + 1}`,
+        title: section.title || `Section ${idx + 1}`,
+        time: formatRange(section.start, end),
+        start: section.start,
+        end,
+        items: section.items.length ? section.items : ["(无要点)"]
+      };
+    });
+
+  if (sorted.length) return sorted;
+
+  const fallback = rawSections.map((section, idx) => {
+    const start = idx * 60;
+    const end = start + 60;
+    return {
+      id: `sec-${idx + 1}`,
+      title: section.title || `Section ${idx + 1}`,
+      time: formatRange(start, end),
+      start,
+      end,
+      items: section.items.length ? section.items : ["(无要点)"],
+    };
+  });
+
+  return fallback;
+};
+
+const parseMarkdownSummary = (markdown) => {
+  const lines = String(markdown || "").replace(/\r\n/g, "\n").split("\n");
+  const rawSections = [];
+  let current = null;
+
+  const openSection = (seedLine) => {
+    if (current) rawSections.push(current);
+    const seed = seedLine || "";
+    const range = parseTimeRange(seed);
+    current = {
+      title: cleanTitle(seed) || "",
+      start: range?.start,
+      end: range?.end,
+      items: [],
+    };
+  };
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    if (isHeading(line)) {
+      openSection(line);
+      continue;
+    }
+
+    const lineRange = parseTimeRange(line);
+    if (lineRange && (!current || (current.start == null && current.items.length === 0))) {
+      if (!current) openSection(line);
+      current.start = lineRange.start;
+      current.end = lineRange.end;
+      if (!current.title) current.title = cleanTitle(line) || `Section ${rawSections.length + 1}`;
+      continue;
+    }
+
+    if (!current) {
+      openSection(`Section ${rawSections.length + 1}`);
+    }
+
+    if (isBullet(line)) {
+      const point = line.replace(/^\s*(?:[-*+]\s+|\d+[.)]\s+)/, "").trim();
+      if (point) current.items.push(point);
+    } else {
+      current.items.push(line);
+    }
+  }
+
+  if (current) rawSections.push(current);
+
+  return finalizeSections(rawSections);
+};
+
+const applyMarkdown = () => {
+  const parsed = parseMarkdownSummary(markdownInput.value);
+  if (!parsed.length) {
+    state.parseError = "未解析到有效段落，请检查 Markdown 内容。";
+    state.parseMessage = "";
+    return;
+  }
+
+  sections.value = parsed;
+  state.parseError = "";
+  state.parseMessage = `已解析 ${parsed.length} 个章节。`;
+  reset();
+};
+
 const activeSection = computed(() => {
-  const current = sections.find(
+  const current = sections.value.find(
     (section) => state.elapsed >= section.start && state.elapsed < section.end
   );
   return current ?? null;
@@ -225,6 +307,7 @@ watch(
 
 onMounted(() => {
   state.jumpTo = "0";
+  applyMarkdown();
 });
 
 onBeforeUnmount(() => {
@@ -236,9 +319,23 @@ onBeforeUnmount(() => {
   <div class="app">
     <section class="hero">
       <h1>Video Summary Highlighter</h1>
-      <p>
-        点击开始后，页面会按照时间自动高亮对应章节。你可以设置起跑延迟，让你有时间点击视频播放。
-      </p>
+      <p>在下方粘贴 Markdown 视频总结并点击“解析总结”，程序会自动适配常见格式并按时间高亮章节。</p>
+
+      <div class="summary-input">
+        <label for="summary">粘贴视频总结（Markdown）</label>
+        <textarea
+          id="summary"
+          v-model="markdownInput"
+          placeholder="在这里粘贴你的 md 总结..."
+          spellcheck="false"
+        />
+        <div class="summary-actions">
+          <button class="secondary" @click="applyMarkdown">解析总结</button>
+          <span class="ok" v-if="state.parseMessage">{{ state.parseMessage }}</span>
+          <span class="error" v-if="state.parseError">{{ state.parseError }}</span>
+        </div>
+      </div>
+
       <div class="controls">
         <div class="control-group">
           <label>当前时间（秒）</label>
@@ -269,9 +366,7 @@ onBeforeUnmount(() => {
       <div class="status">
         <span>状态：</span>
         <strong>{{ statusLabel }}</strong>
-        <span v-if="state.status === 'countdown'" class="countdown">
-          倒计时 {{ state.countdown.toFixed(1) }}s
-        </span>
+        <span v-if="state.status === 'countdown'" class="countdown"> 倒计时 {{ state.countdown.toFixed(1) }}s </span>
         <span>当前段落：</span>
         <strong>{{ activeSection?.title ?? "暂无" }}</strong>
       </div>

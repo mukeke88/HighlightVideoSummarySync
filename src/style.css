@@ -53,6 +53,46 @@ body {
   line-height: 1.6;
 }
 
+.summary-input {
+  margin-top: 18px;
+  display: grid;
+  gap: 8px;
+}
+
+.summary-input label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.summary-input textarea {
+  width: 100%;
+  min-height: 220px;
+  resize: vertical;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  padding: 12px 14px;
+  font: 14px/1.6 "Consolas", "Cascadia Mono", monospace;
+  background: #fffefb;
+  color: var(--ink);
+}
+
+.summary-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.summary-actions .ok {
+  color: #20643e;
+  font-size: 13px;
+}
+
+.summary-actions .error {
+  color: #b42318;
+  font-size: 13px;
+}
+
 .controls {
   display: grid;
   gap: 12px;
