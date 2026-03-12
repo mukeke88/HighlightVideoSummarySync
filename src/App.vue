@@ -169,7 +169,21 @@ const parseMarkdownSummary = (markdown) => {
     if (!line) continue;
 
     if (isHeading(line)) {
-      openSection(line);
+      const headingRange = parseTimeRange(line);
+      if (headingRange) {
+        openSection(line);
+        current.start = headingRange.start;
+        current.end = headingRange.end;
+        if (!current.title) current.title = `Section ${rawSections.length + 1}`;
+        continue;
+      }
+
+      if (!current) {
+        openSection(line);
+      } else {
+        const headingText = cleanTitle(line);
+        if (headingText) current.items.push(headingText);
+      }
       continue;
     }
 
