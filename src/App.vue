@@ -24,7 +24,7 @@ const initialSections = [
     time: "00:00 - 00:31",
     start: 0,
     end: 31,
-    items: ["请在上方输入框粘贴你的视频总结 Markdown。"],
+    items: [{ type: "text", text: "请在上方输入框粘贴你的视频总结 Markdown。", indent: 0 }],
   },
 ];
 
@@ -125,7 +125,9 @@ const finalizeSections = (rawSections) => {
         time: formatRange(section.start, end),
         start: section.start,
         end,
-        items: section.items.length ? section.items : ["(无要点)"]
+        items: section.items.length
+          ? section.items
+          : [{ type: "text", text: "(无要点)", indent: 0 }],
       };
     });
 
@@ -140,7 +142,9 @@ const finalizeSections = (rawSections) => {
       time: formatRange(start, end),
       start,
       end,
-      items: section.items.length ? section.items : ["(无要点)"],
+      items: section.items.length
+        ? section.items
+        : [{ type: "text", text: "(无要点)", indent: 0 }],
     };
   });
 
@@ -151,6 +155,15 @@ const parseMarkdownSummary = (markdown) => {
   const lines = String(markdown || "").replace(/\r\n/g, "\n").split("\n");
   const rawSections = [];
   let current = null;
+  const toIndent = (raw) => {
+    const prefix = String(raw || "").match(/^\s*/)?.[0] ?? "";
+    return Math.min(4, Math.floor(prefix.replace(/\t/g, "  ").length / 2));
+  };
+  const pushItem = (section, type, text, indent = 0) => {
+    const value = String(text || "").trim();
+    if (!value) return;
+    section.items.push({ type, text: value, indent });
+  };
 
   const openSection = (seedLine) => {
     if (current) rawSections.push(current);
@@ -182,7 +195,7 @@ const parseMarkdownSummary = (markdown) => {
         openSection(line);
       } else {
         const headingText = cleanTitle(line);
-        if (headingText) current.items.push(headingText);
+        pushItem(current, "heading", headingText, 0);
       }
       continue;
     }
@@ -202,9 +215,10 @@ const parseMarkdownSummary = (markdown) => {
 
     if (isBullet(line)) {
       const point = line.replace(/^\s*(?:[-*+]\s+|\d+[.)]\s+)/, "").trim();
-      if (point) current.items.push(point);
+      pushItem(current, "bullet", point, toIndent(lines[i]));
     } else {
-      current.items.push(line);
+      const kind = /[:：]$/.test(line) ? "label" : "text";
+      pushItem(current, kind, line, toIndent(lines[i]));
     }
   }
 
@@ -398,9 +412,17 @@ onBeforeUnmount(() => {
           {{ section.title }}
           <span>{{ section.time }}</span>
         </h3>
-        <ul>
-          <li v-for="item in section.items" :key="item">{{ item }}</li>
-        </ul>
+        <div class="section-items">
+          <div
+            v-for="(item, idx) in section.items"
+            :key="`${section.id}-${idx}`"
+            class="section-item"
+            :class="[`type-${item.type}`, `indent-${item.indent}`]"
+          >
+            <span v-if="item.type === 'bullet'" class="bullet-marker">•</span>
+            <span class="item-text">{{ item.text }}</span>
+          </div>
+        </div>
       </article>
     </section>
   </div>
