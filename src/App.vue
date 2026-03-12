@@ -359,41 +359,36 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <div class="controls">
-        <div class="control-group">
-          <label>当前时间（秒）</label>
+    </section>
+
+    <aside class="control-dock">
+      <div class="dock-meta">
+        <div>
+          <span>时间</span>
           <strong>{{ formatClock(state.elapsed) }} ({{ state.elapsed.toFixed(1) }}s)</strong>
         </div>
-        <div class="control-group">
-          <label>起跑延迟（秒）</label>
-          <input v-model="state.delaySeconds" type="number" min="0" step="0.5" />
-        </div>
-        <div class="control-group">
-          <label>跳转到时间（秒）</label>
-          <div class="buttons">
-            <input v-model="state.jumpTo" type="number" min="0" step="1" />
-            <button class="ghost" @click="jump">跳转</button>
-          </div>
-        </div>
-        <div class="control-group">
-          <label>控制</label>
-          <div class="buttons">
-            <button @click="startWithDelay" :disabled="state.status === 'running'">开始</button>
-            <button class="secondary" @click="pause" :disabled="state.status !== 'running'">
-              暂停
-            </button>
-            <button class="ghost" @click="reset">重置</button>
-          </div>
+        <div>
+          <span>状态</span>
+          <strong>{{ statusLabel }}</strong>
         </div>
       </div>
-      <div class="status">
-        <span>状态：</span>
-        <strong>{{ statusLabel }}</strong>
-        <span v-if="state.status === 'countdown'" class="countdown"> 倒计时 {{ state.countdown.toFixed(1) }}s </span>
-        <span>当前段落：</span>
+      <div class="dock-section">
+        <span>当前段落</span>
         <strong>{{ activeSection?.title ?? "暂无" }}</strong>
       </div>
-    </section>
+      <div class="dock-row">
+        <label>延迟</label>
+        <input v-model="state.delaySeconds" type="number" min="0" step="0.5" />
+        <label>跳转</label>
+        <input v-model="state.jumpTo" type="number" min="0" step="1" />
+        <button class="ghost" @click="jump">Go</button>
+      </div>
+      <div class="dock-buttons">
+        <button @click="startWithDelay" :disabled="state.status === 'running'">开始</button>
+        <button class="secondary" @click="pause" :disabled="state.status !== 'running'">暂停</button>
+        <button class="ghost" @click="reset">重置</button>
+      </div>
+    </aside>
 
     <section class="timeline">
       <article
