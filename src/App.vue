@@ -308,8 +308,10 @@ const reset = () => {
 };
 
 const jump = () => {
-  const value = Number(state.jumpTo);
-  if (Number.isNaN(value)) return;
+  const raw = String(state.jumpTo ?? "").trim();
+  if (!raw) return;
+  const value = raw.includes(":") ? toSeconds(raw) : Number(raw);
+  if (value == null || Number.isNaN(value)) return;
   state.elapsed = Math.max(0, value);
   if (state.status === "running") {
     startEpoch = performance.now() - state.elapsed * 1000;
@@ -329,7 +331,7 @@ watch(
 );
 
 onMounted(() => {
-  state.jumpTo = "0";
+  state.jumpTo = "00:00";
   applyMarkdown();
 });
 
@@ -374,7 +376,7 @@ onBeforeUnmount(() => {
         <label>D</label>
         <input v-model="state.delaySeconds" type="number" min="0" step="0.5" />
         <label>J</label>
-        <input v-model="state.jumpTo" type="number" min="0" step="1" />
+        <input v-model="state.jumpTo" type="text" placeholder="mm:ss" />
         <button class="ghost" @click="jump">Go</button>
       </div>
       <div class="dock-buttons">
