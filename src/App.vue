@@ -38,6 +38,7 @@ const state = reactive({
   hotkeyMode: "page",
   parseMessage: "",
   parseError: "",
+  contentFontScale: 1,
 });
 
 const markdownInput = ref(SAMPLE_MARKDOWN);
@@ -287,6 +288,8 @@ const hotkeyModeLabel = computed(() => {
   return "Shortcut";
 });
 
+const contentFontScaleLabel = computed(() => `${Math.round(state.contentFontScale * 100)}%`);
+
 const sectionRefs = new Map();
 const setSectionRef = (id, el) => {
   if (el) {
@@ -397,6 +400,19 @@ const onGlobalKeydown = (event) => {
   }
 };
 
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+const onCtrlWheel = (event) => {
+  if (!event.ctrlKey && !event.metaKey) return;
+  event.preventDefault();
+  const delta = event.deltaY < 0 ? 0.05 : -0.05;
+  state.contentFontScale = clamp(
+    Number((state.contentFontScale + delta).toFixed(2)),
+    0.7,
+    2
+  );
+};
+
 watch(
   () => activeSection.value?.id,
   async (id) => {
@@ -411,8 +427,13 @@ watch(
 
 onMounted(() => {
   state.jumpTo = "00:00";
+  const savedScale = Number(localStorage.getItem("content-font-scale"));
+  if (!Number.isNaN(savedScale)) {
+    state.contentFontScale = clamp(savedScale, 0.7, 2);
+  }
   applyMarkdown();
   window.addEventListener("keydown", onGlobalKeydown, true);
+  window.addEventListener("wheel", onCtrlWheel, { passive: false });
   if (hasNativeHotkeyBridge()) {
     window.hotkeyBridge
       .getMode()
@@ -430,6 +451,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   stopTimer();
   window.removeEventListener("keydown", onGlobalKeydown, true);
+  window.removeEventListener("wheel", onCtrlWheel);
   if (disposeNativeHotkeyListener) {
     disposeNativeHotkeyListener();
     disposeNativeHotkeyListener = null;
@@ -438,6 +460,13 @@ onBeforeUnmount(() => {
     window.hotkeyBridge.setMonitoring(false);
   }
 });
+
+watch(
+  () => state.contentFontScale,
+  (value) => {
+    localStorage.setItem("content-font-scale", String(value));
+  }
+);
 </script>
 
 <template>
@@ -468,6 +497,7 @@ onBeforeUnmount(() => {
         <span><b>T</b> {{ formatClock(state.elapsed) }}</span>
         <span><b>S</b> {{ statusLabel }}</span>
         <span><b>K</b> {{ hotkeyModeLabel }}</span>
+        <span><b>F</b> {{ contentFontScaleLabel }}</span>
         <span v-if="state.status === 'countdown'"><b>CD</b> {{ state.countdown.toFixed(1) }}s</span>
       </div>
       <div class="dock-section-inline">
@@ -494,7 +524,7 @@ onBeforeUnmount(() => {
       </div>
     </aside>
 
-    <section class="timeline">
+    <section class="timeline" :style="{ '--content-font-scale': state.contentFontScale }">
       <article
         v-for="section in sections"
         :key="section.id"

@@ -206,6 +206,7 @@ button:hover:not(:disabled) {
 }
 
 .timeline {
+  --content-font-scale: 1;
   display: grid;
   gap: 14px;
 }
@@ -225,13 +226,13 @@ button:hover:not(:disabled) {
 
 .section h3 {
   margin: 0 0 6px;
-  font-size: 18px;
+  font-size: calc(18px * var(--content-font-scale));
 }
 
 .section h3 span {
   color: var(--muted);
   font-weight: 500;
-  font-size: 13px;
+  font-size: calc(13px * var(--content-font-scale));
   margin-left: 10px;
 }
 
@@ -244,7 +245,7 @@ button:hover:not(:disabled) {
 .section-item {
   color: var(--muted);
   line-height: 1.55;
-  font-size: 14px;
+  font-size: calc(14px * var(--content-font-scale));
   display: flex;
   gap: 6px;
   align-items: flex-start;
