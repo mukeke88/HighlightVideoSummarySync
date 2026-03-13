@@ -320,7 +320,11 @@ const startRunning = () => {
 
 const startWithDelay = () => {
   if (state.status === "running") return;
-  const delay = Math.max(0, Number(state.delaySeconds) || 0);
+  if (!state.monitorHotkey) {
+    toggleMonitorHotkey();
+  }
+  state.delaySeconds = 0;
+  const delay = 0;
   state.countdown = delay;
   if (delay === 0) {
     startRunning();
@@ -346,9 +350,14 @@ const pause = () => {
 };
 
 const reset = () => {
+  if (hasNativeHotkeyBridge() && state.monitorHotkey) {
+    window.hotkeyBridge.setMonitoring(false).catch(() => {});
+  }
   state.status = "idle";
   state.elapsed = 0;
   state.countdown = 0;
+  state.delaySeconds = 2;
+  state.monitorHotkey = false;
   stopTimer();
 };
 
