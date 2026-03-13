@@ -95,7 +95,6 @@ const parseTimeRange = (line) => {
 const cleanTitle = (text) => {
   return text
     .replace(/^#+\s*/, "")
-    .replace(/^\d+[.)、]\s*/, "")
     .replace(/[（(\[]?\s*\d{1,2}:\d{2}(?::\d{2})?\s*(?:~|\-|–|—|至|to)\s*\d{1,2}:\d{2}(?::\d{2})?\s*[)）\]]?/gi, "")
     .replace(/\s+/g, " ")
     .trim();
