@@ -394,7 +394,8 @@ const onGlobalKeydown = (event) => {
   if (hasNativeHotkeyBridge()) return;
   if (!state.monitorHotkey) return;
   if (event.repeat) return;
-  if (String(event.key).toLowerCase() !== "k") return;
+  const key = String(event.key).toLowerCase();
+  if (key !== "k" && key !== " " && key !== "spacebar") return;
   if (toggleTimerByHotkey()) {
     event.preventDefault();
   }
@@ -518,7 +519,7 @@ watch(
           @click="toggleMonitorHotkey"
           :aria-pressed="state.monitorHotkey ? 'true' : 'false'"
         >
-          {{ state.monitorHotkey ? "停止监听全局 K" : "监听全局 K" }}
+          {{ state.monitorHotkey ? "停止监听全局 K/Space" : "监听全局 K/Space" }}
         </button>
         <button class="ghost" @click="reset">重置</button>
       </div>

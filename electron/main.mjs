@@ -11,7 +11,7 @@ let mainWindow = null;
 let monitorEnabled = false;
 let keyHook = null;
 let keyHookListener = null;
-let lastKPressAt = 0;
+let lastTogglePressAt = 0;
 
 try {
   const module = require("uiohook-napi");
@@ -27,22 +27,22 @@ const sendHotkeySignal = () => {
 
 const getHotkeyMode = () => (keyHook ? "hook" : "shortcut");
 
-const isKPressed = (event) => {
+const isToggleKeyPressed = (event) => {
   if (!event || typeof event !== "object") return false;
   const rawcode = Number(event.rawcode);
   const keycode = Number(event.keycode);
-  // Windows VK_K is 75; libuiohook keycode for K is commonly 37.
-  return rawcode === 75 || keycode === 37;
+  // Windows VK_K = 75, VK_SPACE = 32; libuiohook keycodes are commonly K = 37, Space = 57.
+  return rawcode === 75 || keycode === 37 || rawcode === 32 || keycode === 57;
 };
 
 const attachKeyHook = () => {
   if (!keyHook) return false;
   if (keyHookListener) return true;
   keyHookListener = (event) => {
-    if (!isKPressed(event)) return;
+    if (!isToggleKeyPressed(event)) return;
     const now = Date.now();
-    if (now - lastKPressAt < 120) return;
-    lastKPressAt = now;
+    if (now - lastTogglePressAt < 120) return;
+    lastTogglePressAt = now;
     sendHotkeySignal();
   };
   keyHook.on("keydown", keyHookListener);
@@ -72,12 +72,17 @@ const setGlobalKMonitor = (enabled) => {
   }
 
   if (shouldEnable) {
-    const ok = globalShortcut.register("K", sendHotkeySignal);
+    const okK = globalShortcut.register("K", sendHotkeySignal);
+    const okSpace = globalShortcut.register("Space", sendHotkeySignal);
+    if (!okK) globalShortcut.unregister("K");
+    if (!okSpace) globalShortcut.unregister("Space");
+    const ok = okK && okSpace;
     monitorEnabled = ok;
     return monitorEnabled;
   }
 
   globalShortcut.unregister("K");
+  globalShortcut.unregister("Space");
   monitorEnabled = false;
   return monitorEnabled;
 };
