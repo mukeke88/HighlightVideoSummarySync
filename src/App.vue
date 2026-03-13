@@ -100,10 +100,10 @@ const cleanTitle = (text) => {
     .trim();
 };
 
-const isHeading = (line) =>
-  /^#{1,6}\s+/.test(line) || /^\d+[.)、]\s+/.test(line) || /^\d+(?:\.\d+)+\s+/.test(line);
+const isHeading = (line) => /^#{1,6}\s+/.test(line);
 
 const isBullet = (line) => /^\s*(?:[-*+]\s+|\d+[.)]\s+)/.test(line);
+const isDivider = (line) => /^\s*([-*_])(?:\s*\1){2,}\s*$/.test(line);
 
 const looksLikeSectionTitle = (line) => {
   if (!line) return false;
@@ -116,35 +116,28 @@ const looksLikeSectionTitle = (line) => {
 const finalizeSections = (rawSections) => {
   if (!rawSections.length) return [];
 
-  const sorted = rawSections
-    .filter((x) => typeof x.start === "number")
-    .sort((a, b) => a.start - b.start)
-    .map((section, idx, arr) => {
-      let end = section.end;
-      if (typeof end !== "number") {
-        const next = arr[idx + 1];
-        end = next ? Math.max(section.start + 1, next.start) : section.start + 60;
-      }
-      if (end <= section.start) {
-        end = section.start + 1;
-      }
-      return {
-        id: `sec-${idx + 1}`,
-        title: section.title || `Section ${idx + 1}`,
-        time: formatRange(section.start, end),
-        start: section.start,
-        end,
-        items: section.items.length
-          ? section.items
-          : [{ type: "text", text: "(无要点)", indent: 0 }],
-      };
-    });
+  let cursor = 0;
 
-  if (sorted.length) return sorted;
+  return rawSections.map((section, idx, arr) => {
+    const hasStart = typeof section.start === "number" && section.start >= 0;
+    const hasEnd = typeof section.end === "number";
+    const start = hasStart ? Math.max(0, section.start) : cursor;
 
-  const fallback = rawSections.map((section, idx) => {
-    const start = idx * 60;
-    const end = start + 60;
+    let end = hasEnd ? section.end : null;
+    if (typeof end !== "number" || end <= start) {
+      let nextStart = null;
+      for (let i = idx + 1; i < arr.length; i += 1) {
+        const candidate = arr[i]?.start;
+        if (typeof candidate === "number" && candidate > start) {
+          nextStart = candidate;
+          break;
+        }
+      }
+      end = typeof nextStart === "number" ? nextStart : start + 60;
+    }
+    if (end <= start) end = start + 1;
+    cursor = end;
+
     return {
       id: `sec-${idx + 1}`,
       title: section.title || `Section ${idx + 1}`,
@@ -156,8 +149,6 @@ const finalizeSections = (rawSections) => {
         : [{ type: "text", text: "(无要点)", indent: 0 }],
     };
   });
-
-  return fallback;
 };
 
 const parseMarkdownSummary = (markdown) => {
@@ -189,6 +180,7 @@ const parseMarkdownSummary = (markdown) => {
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i].trim();
     if (!line) continue;
+    if (isDivider(line)) continue;
 
     if (isHeading(line)) {
       const headingRange = parseTimeRange(line);
@@ -234,6 +226,25 @@ const parseMarkdownSummary = (markdown) => {
   if (current) rawSections.push(current);
 
   return finalizeSections(rawSections);
+};
+
+const escapeHtml = (input) =>
+  String(input || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+const renderInlineMarkdown = (text) => {
+  let html = escapeHtml(text);
+  html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+  html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  html = html.replace(/__([^_]+)__/g, "<strong>$1</strong>");
+  html = html.replace(/(^|[^\*])\*([^*]+)\*(?!\*)/g, "$1<em>$2</em>");
+  html = html.replace(/(^|[^_])_([^_]+)_(?!_)/g, "$1<em>$2</em>");
+  return html;
 };
 
 const applyMarkdown = () => {
@@ -503,7 +514,7 @@ onBeforeUnmount(() => {
             :class="[`type-${item.type}`, `indent-${item.indent}`]"
           >
             <span v-if="item.type === 'bullet'" class="bullet-marker">•</span>
-            <span class="item-text">{{ item.text }}</span>
+            <span class="item-text" v-html="renderInlineMarkdown(item.text)"></span>
           </div>
         </div>
       </article>

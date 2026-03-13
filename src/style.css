@@ -254,6 +254,24 @@ button:hover:not(:disabled) {
   min-width: 0;
 }
 
+.section-item .item-text code {
+  font-family: "Consolas", "Cascadia Mono", monospace;
+  background: #f5efe7;
+  border: 1px solid #eadfce;
+  border-radius: 6px;
+  padding: 0 4px;
+  font-size: 0.92em;
+}
+
+.section-item .item-text a {
+  color: #195eaa;
+  text-decoration: none;
+}
+
+.section-item .item-text a:hover {
+  text-decoration: underline;
+}
+
 .section-item.type-heading .item-text {
   color: var(--ink);
   font-weight: 600;
