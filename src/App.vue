@@ -323,8 +323,8 @@ const startWithDelay = () => {
   if (!state.monitorHotkey) {
     toggleMonitorHotkey();
   }
+  const delay = Math.max(0, Number(state.delaySeconds) || 0);
   state.delaySeconds = 0;
-  const delay = 0;
   state.countdown = delay;
   if (delay === 0) {
     startRunning();
