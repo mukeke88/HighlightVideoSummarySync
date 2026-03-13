@@ -153,6 +153,7 @@ const finalizeSections = (rawSections) => {
 
 const parseMarkdownSummary = (markdown) => {
   const lines = String(markdown || "").replace(/\r\n/g, "\n").split("\n");
+  const hasTimedCues = lines.some((raw) => parseTimeRange(String(raw).trim()));
   const rawSections = [];
   let current = null;
   const toIndent = (raw) => {
@@ -193,6 +194,7 @@ const parseMarkdownSummary = (markdown) => {
       }
 
       if (!current) {
+        if (hasTimedCues) continue;
         openSection(line);
       } else {
         const headingText = cleanTitle(line);
@@ -211,6 +213,7 @@ const parseMarkdownSummary = (markdown) => {
     }
 
     if (!current) {
+      if (hasTimedCues) continue;
       openSection(`Section ${rawSections.length + 1}`);
     }
 
