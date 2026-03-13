@@ -35,6 +35,7 @@ const state = reactive({
   delaySeconds: 2,
   jumpTo: "",
   monitorHotkey: false,
+  hotkeyMode: "page",
   parseMessage: "",
   parseError: "",
 });
@@ -49,7 +50,8 @@ let disposeNativeHotkeyListener = null;
 const hasNativeHotkeyBridge = () =>
   typeof window !== "undefined" &&
   typeof window.hotkeyBridge?.setMonitoring === "function" &&
-  typeof window.hotkeyBridge?.onHotkeyK === "function";
+  typeof window.hotkeyBridge?.onHotkeyK === "function" &&
+  typeof window.hotkeyBridge?.getMode === "function";
 
 const formatClock = (seconds) => {
   const total = Math.max(0, Math.floor(seconds));
@@ -268,7 +270,11 @@ const statusLabel = computed(() => {
   return "未开始";
 });
 
-const hotkeyModeLabel = computed(() => (hasNativeHotkeyBridge() ? "Global" : "Page"));
+const hotkeyModeLabel = computed(() => {
+  if (!hasNativeHotkeyBridge()) return "Page";
+  if (state.hotkeyMode === "hook") return "Hook";
+  return "Shortcut";
+});
 
 const sectionRefs = new Map();
 const setSectionRef = (id, el) => {
@@ -351,6 +357,7 @@ const toggleMonitorHotkey = () => {
     .setMonitoring(next)
     .then((result) => {
       state.monitorHotkey = Boolean(result?.enabled);
+      state.hotkeyMode = String(result?.mode || state.hotkeyMode);
     })
     .catch(() => {
       state.monitorHotkey = false;
@@ -396,6 +403,12 @@ onMounted(() => {
   applyMarkdown();
   window.addEventListener("keydown", onGlobalKeydown, true);
   if (hasNativeHotkeyBridge()) {
+    window.hotkeyBridge
+      .getMode()
+      .then((result) => {
+        state.hotkeyMode = String(result?.mode || state.hotkeyMode);
+      })
+      .catch(() => {});
     disposeNativeHotkeyListener = window.hotkeyBridge.onHotkeyK(() => {
       if (!state.monitorHotkey) return;
       toggleTimerByHotkey();
