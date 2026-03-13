@@ -34,6 +34,7 @@ const state = reactive({
   countdown: 0,
   delaySeconds: 2,
   jumpTo: "",
+  monitorHotkey: false,
   parseMessage: "",
   parseError: "",
 });
@@ -43,6 +44,12 @@ const sections = ref(initialSections);
 
 let timerId = null;
 let startEpoch = 0;
+let disposeNativeHotkeyListener = null;
+
+const hasNativeHotkeyBridge = () =>
+  typeof window !== "undefined" &&
+  typeof window.hotkeyBridge?.setMonitoring === "function" &&
+  typeof window.hotkeyBridge?.onHotkeyK === "function";
 
 const formatClock = (seconds) => {
   const total = Math.max(0, Math.floor(seconds));
@@ -261,6 +268,8 @@ const statusLabel = computed(() => {
   return "未开始";
 });
 
+const hotkeyModeLabel = computed(() => (hasNativeHotkeyBridge() ? "Global" : "Page"));
+
 const sectionRefs = new Map();
 const setSectionRef = (id, el) => {
   if (el) {
@@ -332,6 +341,44 @@ const jump = () => {
   }
 };
 
+const toggleMonitorHotkey = () => {
+  const next = !state.monitorHotkey;
+  if (!hasNativeHotkeyBridge()) {
+    state.monitorHotkey = next;
+    return;
+  }
+  window.hotkeyBridge
+    .setMonitoring(next)
+    .then((result) => {
+      state.monitorHotkey = Boolean(result?.enabled);
+    })
+    .catch(() => {
+      state.monitorHotkey = false;
+    });
+};
+
+const toggleTimerByHotkey = () => {
+  if (state.status === "running") {
+    pause();
+    return true;
+  }
+  if (state.status === "paused") {
+    startRunning();
+    return true;
+  }
+  return false;
+};
+
+const onGlobalKeydown = (event) => {
+  if (hasNativeHotkeyBridge()) return;
+  if (!state.monitorHotkey) return;
+  if (event.repeat) return;
+  if (String(event.key).toLowerCase() !== "k") return;
+  if (toggleTimerByHotkey()) {
+    event.preventDefault();
+  }
+};
+
 watch(
   () => activeSection.value?.id,
   async (id) => {
@@ -347,10 +394,25 @@ watch(
 onMounted(() => {
   state.jumpTo = "00:00";
   applyMarkdown();
+  window.addEventListener("keydown", onGlobalKeydown, true);
+  if (hasNativeHotkeyBridge()) {
+    disposeNativeHotkeyListener = window.hotkeyBridge.onHotkeyK(() => {
+      if (!state.monitorHotkey) return;
+      toggleTimerByHotkey();
+    });
+  }
 });
 
 onBeforeUnmount(() => {
   stopTimer();
+  window.removeEventListener("keydown", onGlobalKeydown, true);
+  if (disposeNativeHotkeyListener) {
+    disposeNativeHotkeyListener();
+    disposeNativeHotkeyListener = null;
+  }
+  if (hasNativeHotkeyBridge() && state.monitorHotkey) {
+    window.hotkeyBridge.setMonitoring(false);
+  }
 });
 </script>
 
@@ -381,6 +443,7 @@ onBeforeUnmount(() => {
       <div class="dock-meta-inline">
         <span><b>T</b> {{ formatClock(state.elapsed) }}</span>
         <span><b>S</b> {{ statusLabel }}</span>
+        <span><b>K</b> {{ hotkeyModeLabel }}</span>
         <span v-if="state.status === 'countdown'"><b>CD</b> {{ state.countdown.toFixed(1) }}s</span>
       </div>
       <div class="dock-section-inline">
@@ -396,6 +459,13 @@ onBeforeUnmount(() => {
       <div class="dock-buttons">
         <button @click="startWithDelay" :disabled="state.status === 'running'">开始</button>
         <button class="secondary" @click="pause" :disabled="state.status !== 'running'">暂停</button>
+        <button
+          class="secondary"
+          @click="toggleMonitorHotkey"
+          :aria-pressed="state.monitorHotkey ? 'true' : 'false'"
+        >
+          {{ state.monitorHotkey ? "停止监听全局 K" : "监听全局 K" }}
+        </button>
         <button class="ghost" @click="reset">重置</button>
       </div>
     </aside>
